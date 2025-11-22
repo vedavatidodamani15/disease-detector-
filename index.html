@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoimmune Analyser</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .container-card { max-width: 100%; margin: 2rem auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05); }
+        .symptom-item { cursor: pointer; transition: all 0.2s ease-in-out; background-color: white; border: 1px solid #e5e7eb; }
+        .symptom-item:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        .selected { background-color: #e0f7fa; border-color: #00bcd4; font-weight: 600; color: #006064; }
+        .risk-ring {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(
+                #ef4444 0% var(--risk-percent),
+                #e5e7eb var(--risk-percent) 100%
+            );
+        }
+        .risk-score-inner {
+            background-color: white;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div class="container-card bg-white rounded-2xl p-4 md:p-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center space-x-3 mb-2">
+                <i class="fa-solid fa-microscope text-4xl text-sky-600"></i>
+                <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900">
+                    Autoimmune <span class="text-sky-700">Analyser</span>
+                </h1>
+            </div>
+            <p class="text-sm text-gray-500 max-w-2xl mx-auto mt-2">Personalized symptom and risk assessment based on multiple factors.</p>
+            <div class="mt-4 p-3 bg-red-50 border border-red-300 rounded-lg text-red-700 text-xs md:text-sm font-medium">
+                <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                DISCLAIMER: This tool is for informational purposes only. Consult a doctor for diagnosis.
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- COLUMN 1: INPUTS (Age, Severity, Symptoms) -->
+            <div class="lg:col-span-1 bg-gray-50 p-4 rounded-xl shadow-inner h-fit">
+                <h2 class="text-xl font-extrabold mb-4 text-gray-800 flex items-center">
+                    <i class="fa-solid fa-user-plus mr-2 text-sky-600"></i> 1. Your Information
+                </h2>
+                
+                <!-- Age Input -->
+                <div class="mb-4">
+                    <label for="age" class="block text-sm font-medium text-gray-700 mb-1">Enter Your Age (Years)</label>
+                    <input type="number" id="age" min="1" max="120" placeholder="e.g., 35" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-sm">
+                </div>
+                
+                <!-- Severity Slider -->
+                <div class="mb-6">
+                    <label for="severity" class="block text-sm font-medium text-gray-700 mb-2">Symptom Severity (Scale 1-10)</label>
+                    <input type="range" id="severity" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>1 (Mild)</span>
+                        <span>Current: <span id="severityValue" class="font-bold text-sky-700">5</span></span>
+                        <span>10 (Severe)</span>
+                    </div>
+                </div>
+
+                <h2 class="text-xl font-extrabold mb-4 text-gray-800 flex items-center">
+                    <i class="fa-solid fa-list-check mr-2 text-sky-600"></i> 2. Select Symptoms
+                </h2>
+                
+                <div class="relative mb-4">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="symptomSearch" placeholder="Search symptoms..." class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-sm">
+                </div>
+
+                <div class="flex justify-between items-center mb-3 text-sm">
+                    <p class="font-medium text-gray-600">Selected: <span id="selectedCount" class="text-sky-700 font-bold">0</span></p>
+                    <button onclick="resetApp()" class="text-sm text-red-600 hover:text-red-800 transition duration-150 flex items-center">
+                        <i class="fa-solid fa-rotate-right mr-1"></i>Reset All
+                    </button>
+                </div>
+                
+                <!-- Symptom List Container -->
+                <div id="symptomList" class="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
+                    <!-- Symptoms injected here -->
+                </div>
+                
+                <!-- Validation Message Area -->
+                <div id="validationMessage" class="mt-4 p-2 bg-yellow-100 border border-yellow-400 rounded-lg text-yellow-800 text-xs hidden">
+                    Please ensure you enter a valid age and select at least 2 symptoms.
+                </div>
+                
+                <button id="analyzeButton" onclick="runAnalysis()" class="mt-6 w-full py-3 bg-sky-700 text-white font-semibold rounded-lg hover:bg-sky-800 transition duration-300 shadow-lg shadow-sky-300 disabled:bg-gray-400 disabled:shadow-none" disabled>
+                    <i class="fa-solid fa-chart-line mr-2"></i> Calculate Risk & Report
+                </button>
+            </div>
+
+            <!-- COLUMN 2 & 3: ANALYSIS RESULTS -->
+            <div class="lg:col-span-2">
+                <section id="resultsSection" class="hidden space-y-6">
+                    
+                    <!-- Top Section: Risk Calculator & Preventive Tips -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        <!-- Risk Calculator -->
+                        <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
+                            <h3 class="text-lg font-bold mb-4 text-gray-800 flex items-center">
+                                <i class="fa-solid fa-bell-slash mr-2 text-red-600"></i> Risk Calculator
+                            </h3>
+                            <div class="risk-ring" id="riskRing" style="--risk-percent: 0%">
+                                <div class="risk-score-inner">
+                                    <span id="overallRiskScore" class="text-4xl font-extrabold text-red-600">0%</span>
+                                    <span class="text-xs text-gray-500 font-semibold mt-1">Overall Risk Index</span>
+                                </div>
+                            </div>
+                            <p id="riskExplanation" class="text-sm text-gray-600 mt-4 text-center">Select symptoms and age to calculate your index.</p>
+                        </div>
+
+                        <!-- Preventive Tips -->
+                        <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                            <h3 class="text-lg font-bold mb-3 text-gray-800 flex items-center">
+                                <i class="fa-solid fa-seedling mr-2 text-green-700"></i> Preventive Tips
+                            </h3>
+                            <ul id="preventiveTips" class="list-disc pl-5 text-sm space-y-2 text-gray-700">
+                                <li>Tips based on your matched symptoms will appear here.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Graph Section -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-extrabold mb-4 text-gray-800 flex items-center">
+                            <i class="fa-solid fa-chart-column mr-2 text-blue-600"></i> 3. Disease Match Graph
+                        </h2>
+                        <div class="h-64">
+                            <canvas id="matchChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Detailed Matches List -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-extrabold mb-4 text-gray-800 flex items-center">
+                            <i class="fa-solid fa-magnifying-glass-chart mr-2 text-indigo-600"></i> 4. Detailed Profile Matches
+                        </h2>
+                        <div id="analysisOutput" class="space-y-4">
+                            <p class="text-gray-500">Analysis results will be displayed here after you run the calculation.</p>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // --- DATA SETUP (14 Diseases, Weights, and Age Risk) ---
+        const SYMPTOMS = {
+            "1": "Persistent Fatigue", "2": "Joint Pain/Swelling", "3": "Morning Stiffness (>30m)",
+            "4": "Chronic Diarrhea/Abdominal Pain", "5": "Unintentional Weight Loss",
+            "6": "Unintentional Weight Gain", "7": "Excessive Thirst/Urination",
+            "8": "Facial Rash (Butterfly)", "9": "Scaly Skin Patches",
+            "10": "Dry Eyes/Mouth", "11": "Rapid Heart Rate/Palpitations",
+            "12": "Heat or Cold Sensitivity", "13": "Difficulty Walking/Coordination",
+            "14": "Numbness/Tingling in Limbs", "15": "Vision Problems",
+            "16": "Muscle Weakness", "17": "Recurring Low-Grade Fever",
+            "18": "Constipation", "19": "Dry Skin/Brittle Hair",
+            "20": "Hair Loss", "21": "Difficulty Swallowing", "22": "Chest Pain/Shortness of Breath",
+            "23": "Sensitivity to Sunlight", "24": "Mouth Ulcers/Sores", "25": "Raynaud's Phenomenon",
+            "26": "Anxiety/Irritability", "27": "Low Blood Pressure/Dizziness"
+        };
+        
+        const HIGH_WEIGHT_SYMPTOMS = ["8", "10", "13", "25", "3"]; 
+        
+        const DISEASE_PROFILES = {
+            "Rheumatoid Arthritis (RA)": {keys: ["2", "3", "1", "17", "16"], tips: ["Anti-inflammatory diet.", "Low-impact exercise."], ageRisk: [30, 60]},
+            "Systemic Lupus Erythematosus (Lupus)": {keys: ["2", "8", "17", "1", "15", "23", "24"], tips: ["Strict sun protection.", "Manage stress."], ageRisk: [15, 45]},
+            "Multiple Sclerosis (MS)": {keys: ["1", "13", "14", "15", "16", "21"], tips: ["Focus on neurological health.", "Vitamin D supplementation."], ageRisk: [20, 50]},
+            "Type 1 Diabetes": {keys: ["7", "5", "1", "15"], tips: ["Monitor blood sugar.", "Balanced diet with careful carb counting."], ageRisk: [0, 30]},
+            "Graves' Disease (Hyperthyroidism)": {keys: ["5", "11", "12", "1", "26"], tips: ["Avoid high-iodine foods.", "Stress management."], ageRisk: [20, 50]},
+            "Hashimoto's Thyroiditis (Hypothyroidism)": {keys: ["6", "12", "18", "19", "1", "20"], tips: ["Selenium and Zinc rich foods.", "Monitor thyroid function."], ageRisk: [30, 50]},
+            "Psoriasis/Psoriatic Arthritis (PsA)": {keys: ["9", "2", "3"], tips: ["Maintain skin hydration.", "Avoid skin trauma."], ageRisk: [20, 50]},
+            "Inflammatory Bowel Disease (IBD)": {keys: ["4", "5", "1", "17", "2"], tips: ["Identify and avoid trigger foods.", "Maintain hydration."], ageRisk: [15, 30]},
+            "Sjögren's Syndrome": {keys: ["10", "1", "2", "24"], tips: ["Use artificial tears/saliva.", "Good oral hygiene."], ageRisk: [40, 60]},
+            "Addison's Disease": {keys: ["1", "5", "27", "17"], tips: ["Maintain steady salt intake.", "Stress reduction is critical."], ageRisk: [30, 50]},
+            "Systemic Sclerosis (Scleroderma)": {keys: ["21", "2", "25", "19"], tips: ["Protect hands from cold (Raynaud's).", "Frequent small meals for GI issues."], ageRisk: [30, 50]},
+            "Ankylosing Spondylitis (AS)": {keys: ["3", "2", "22", "17"], tips: ["Regular back mobility exercises.", "Heat therapy for stiffness."], ageRisk: [18, 40]},
+            "Celiac Disease": {keys: ["4", "5", "1", "18"], tips: ["Strict gluten-free diet.", "Nutrient supplementation (e.g., iron)."], ageRisk: [0, 60]},
+            "Polymyalgia Rheumatica (PMR)": {keys: ["1", "2", "3", "17"], tips: ["Gentle stretching.", "Pain management consultation."], ageRisk: [50, 80]}
+        };
+
+        const MIN_MATCHES = 2;
+        let selectedSymptomKeys = new Set();
+        let matchChartInstance = null;
+
+        // --- DOM Elements ---
+        const symptomListEl = document.getElementById('symptomList');
+        const selectedCountEl = document.getElementById('selectedCount');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const searchInput = document.getElementById('symptomSearch');
+        const severitySlider = document.getElementById('severity');
+        const severityValueEl = document.getElementById('severityValue');
+        const ageInput = document.getElementById('age');
+        const resultsSection = document.getElementById('resultsSection');
+        const analysisOutputEl = document.getElementById('analysisOutput');
+        const overallRiskScoreEl = document.getElementById('overallRiskScore');
+        const riskRingEl = document.getElementById('riskRing');
+        const riskExplanationEl = document.getElementById('riskExplanation');
+        const preventiveTipsEl = document.getElementById('preventiveTips');
+        const validationMessageEl = document.getElementById('validationMessage'); // Added validation message element
+
+        // --- UI/STATE MANAGEMENT ---
+
+        severitySlider.addEventListener('input', () => {
+            severityValueEl.textContent = severitySlider.value;
+        });
+
+        function renderSymptomList(filterText = '') {
+            symptomListEl.innerHTML = '';
+            const filter = filterText.toLowerCase();
+
+            Object.entries(SYMPTOMS).forEach(([key, description]) => {
+                if (description.toLowerCase().includes(filter)) {
+                    const isSelected = selectedSymptomKeys.has(key);
+                    const item = document.createElement('div');
+                    item.className = `symptom-item p-3 rounded-lg text-sm flex justify-between items-center transition duration-150 ${isSelected ? 'selected' : 'hover:bg-gray-100'}`;
+                    item.setAttribute('data-key', key);
+                    item.onclick = () => toggleSymptom(key);
+                    
+                    item.innerHTML = `
+                        <span class="font-medium">${description}</span>
+                        <i class="fa-solid ${isSelected ? 'fa-square-check text-sky-700' : 'fa-square text-gray-300'}"></i>
+                    `;
+                    symptomListEl.appendChild(item);
+                }
+            });
+        }
+
+        function updateUI() {
+            selectedCountEl.textContent = selectedSymptomKeys.size;
+            const ageValid = !isNaN(parseInt(ageInput.value)) && parseInt(ageInput.value) > 0;
+            const symptomsValid = selectedSymptomKeys.size >= MIN_MATCHES;
+
+            analyzeButton.disabled = !(ageValid && symptomsValid);
+            
+            // Hide validation message if conditions are met
+            if (ageValid && symptomsValid) {
+                 validationMessageEl.classList.add('hidden');
+            }
+
+            renderSymptomList(searchInput.value);
+        }
+
+        function toggleSymptom(key) {
+            if (selectedSymptomKeys.has(key)) {
+                selectedSymptomKeys.delete(key);
+            } else {
+                selectedSymptomKeys.add(key);
+            }
+            updateUI();
+        }
+        
+        // --- ANALYSIS FUNCTIONS ---
+
+        function analyzeSymptoms() {
+            const matches = [];
+            
+            for (const [disease, profile] of Object.entries(DISEASE_PROFILES)) {
+                let matched_count = 0;
+                let matched_keys = new Set();
+                
+                profile.keys.forEach(requiredKey => {
+                    if (selectedSymptomKeys.has(requiredKey)) {
+                        matched_count++;
+                        matched_keys.add(requiredKey);
+                    }
+                });
+
+                if (matched_count >= MIN_MATCHES) {
+                    const matchPercent = (matched_count / profile.keys.length) * 100;
+                    
+                    matches.push({ 
+                        disease, 
+                        count: matched_count, 
+                        matchedKeys: matched_keys,
+                        profileSize: profile.keys.length,
+                        matchPercent: parseFloat(matchPercent.toFixed(1)),
+                        ageRisk: profile.ageRisk
+                    });
+                }
+            }
+            
+            matches.sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                return b.matchPercent - a.matchPercent;
+            });
+            return matches;
+        }
+
+        // --- RISK CALCULATION ---
+
+        function calculateOverallRisk(matches, age, severity) {
+            let baseRisk = 20;
+            let matchScore = 0;
+            let ageFactor = 0;
+            let specificSymptomFactor = 0;
+            
+            // 1. Matched Disease Score (Up to 40 points)
+            if (matches.length > 0) {
+                const bestMatch = matches[0];
+                matchScore = Math.round(bestMatch.matchPercent * 0.40);
+            }
+
+            // 2. Specific Symptom Factor (Up to 30 points)
+            HIGH_WEIGHT_SYMPTOMS.forEach(key => {
+                if (selectedSymptomKeys.has(key)) {
+                    specificSymptomFactor += 6;
+                }
+            });
+
+            // 3. Age Factor (Up to 20 points)
+            matches.forEach(match => {
+                const [minAge, maxAge] = match.ageRisk;
+                if (age >= minAge && age <= maxAge) {
+                    ageFactor = Math.max(ageFactor, 10);
+                    const peakAge = (minAge + maxAge) / 2;
+                    if (Math.abs(age - peakAge) <= 5) {
+                        ageFactor = Math.max(ageFactor, 20);
+                    }
+                }
+            });
+            
+            // 4. Severity Factor (Up to 10 points)
+            let severityScore = (severity * 1);
+
+            let finalRisk = baseRisk + matchScore + specificSymptomFactor + ageFactor + severityScore;
+            
+            finalRisk = Math.min(Math.round(finalRisk), 95);
+            finalRisk = Math.max(finalRisk, baseRisk);
+
+            let explanation = "The risk index is calculated based on symptom pattern, age correlation, and severity. **It is not a probability of diagnosis.**";
